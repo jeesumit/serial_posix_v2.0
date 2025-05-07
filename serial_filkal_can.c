@@ -9,7 +9,7 @@
 #include <math.h>
 
 double lat_p,lon_p;
-char filname[] = "/home/robo/dev/fil_/path_deployment/data/path_points.txt";
+char filname[] = "/home/ubuntu/serial_posix_v2.0/path_deployment_v2.0/data/path_points.txt";
 double update_filter(double measurement, double predict, double gain);
 double distance(double lat1,double lat2,double lon1,double lon2);
 double ConvertDegtoRad(double degree);
@@ -27,7 +27,7 @@ float gain=0.5;
 int main()
 {
 int fds;
-const char *portname = "/dev/ttyUSB1";
+const char *portname = "/dev/ttyUSB0";
 struct termios tty;
 char message[] = "Hello, serial port!\n";
 ssize_t bytes_written;

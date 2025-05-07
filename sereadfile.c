@@ -17,7 +17,7 @@ struct termios tty;
 int main(){
     char data[255];
     char read_buf [256];
-    port_init("/dev/ttyUSB0");
+    port_init("/dev/ttyS0");
     char filename[]="inc/gnr.buf";
    /* 
     int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
