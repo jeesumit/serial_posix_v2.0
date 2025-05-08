@@ -13,13 +13,13 @@
 #include "mm.h"
 double lat_p,lon_p,lat_pa,lon_pa,lat_pb,lon_pb;
 double ang_ba=0.0, ang_ab=0.0, dis_bc=0.0, dis_ab=0.0, dis_ac=0.0, ang_ac=0.0, cte_ab=0.0, diffang_h=0.0;
-int cte2can(double kval);
+
 char filname[] = "/home/robo/Documents/serial_posix_v2.0/path_deployment_v2.0/data/path_points.txt";
 
 /*----------------------KALMAN GAIN PARAMETERS --------------------------*/
 double cur_lat =0.0,cur_lng=0.0,prev_lat=0.0,prev_lng=0.0;
 double pred_lat,pred_lng,sum_lat,sum_lng,out_lat=0.0,out_lng=0.0;
-int n =0,canbus=0;
+int n =0;
 float gain=0.5;
 
 /*-----------------------------------------------------------------------*/
@@ -173,29 +173,6 @@ while (!feof(nf) && line_count < count) {
 	   double diff = distance(lat,lat_p,lng,lon_p);
 	   dis_ab = distance(lat_pa,lat_pb,lon_pa,lon_pb);
 	   printf("%.2f  %.2f\n",diff,dis_ab);
-	   
-	   /*----------------------logic starts here---------------------------------------*/
-	   ang_ab=initial_bearing(lat_pa,lat_pb,lon_pa,lon_pb);
-	   ang_ba=initial_bearing(lat_pb,lat_pa,lon_pb,lon_pa);
-	   dis_ac=distance(lat_pa,out_lat, lon_pa, out_lng);
-	   dis_bc=distance(lat_pb,out_lat, lon_pb, out_lng);
-	   ang_ac= initial_bearing(lat_pa,out_lat, lon_pa, out_lng);
-	   
-	   cte_ab = cross_track_error(dis_ac,ang_ab, ang_ac);
-	   canbus = cte2can(cte_ab);
-	   printf("CTE:%.2f CAN:%d",cte_ab,canbus); 
-	   //diffang_c = ang_ac-ang_ab;
-	   diffang_h=head-ang_ab;
-	   
-	   bytes_written = write(fds, message, sizeof(message) - 1);
-     	   if (bytes_written == -1) {
-        	perror("Error writing to serial port");
-        	close(fds);
-    		} else {
-        	printf("Wrote %zd bytes to %s\n", bytes_written, portname);
-    	   }	   
-	   
-	    
 	   if(diff <5.0 && diff > 0.0){
 		fgets(line, 255, nf);
 		line_count++;
@@ -207,7 +184,13 @@ while (!feof(nf) && line_count < count) {
 
              }	
              
-              
+           bytes_written = write(fds, message, sizeof(message) - 1);
+     	   if (bytes_written == -1) {
+        	perror("Error writing to serial port");
+        	close(fds);
+    		} else {
+        	printf("Wrote %zd bytes to %s\n", bytes_written, portname);
+    	}    
 
 	  prev_lat=pred_lat;
 	  prev_lng=pred_lng;
@@ -231,15 +214,6 @@ close(fds);
 return 0;
 /* restore the old port settings */
 }
-
-int cte2can(double kval){
-int cte_steer;
-cte_steer = (int)((1.76*(kval*kval))+(15.2*kval)+52.0); 
-return cte_steer;
-}
-
-
-
 /*
 double update_filter(double measurement, double predict, double gain){
     double update = predict + gain*(measurement-predict);
