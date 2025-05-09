@@ -147,6 +147,7 @@ int pidHead(double val,double setp,double kp,double ki,double kd){
     long int dutycycleh=Constrain(PID_val, -4096, 4096);
     int vah = MAP(dutycycleh, -4096,4096, 0,255);
     steer = (int)((1.76*0.0001*vah*vah)-(0.335*vah)+91);
+    printf("steer:%d \n",steer);
     return steer;
 }
 

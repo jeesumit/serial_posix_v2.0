@@ -29,7 +29,7 @@ int main()
 int fds;
 const char *portname = "/dev/ttyUSB1";
 struct termios tty;
-char message[] = "Hello, serial port!\n";
+char message[4]={'\0'};
 ssize_t bytes_written;
 /*-----------------------------------------------------------------------*/
     // Open the serial port
@@ -47,8 +47,8 @@ ssize_t bytes_written;
     }
 
     // Configure serial port settings (example: 9600 baud, 8N1)
-    cfsetospeed(&tty, B9600);
-    cfsetispeed(&tty, B9600);
+    cfsetospeed(&tty, B115200);
+    cfsetispeed(&tty, B115200);
     tty.c_cflag &= ~PARENB; // No parity
     tty.c_cflag &= ~CSTOPB; // 1 stop bit
     tty.c_cflag &= ~CSIZE;
@@ -74,6 +74,7 @@ ssize_t bytes_written;
 
 int fd, res;
 FILE * nf;
+unsigned int *bn;
 /*------------------- Intialize GNSS FILE-------------------------------------*/
 const char *filename = "inc/gnr.buf";
 ssize_t bytes_read;
@@ -112,7 +113,7 @@ if (nf == NULL){
 /*******************************************************************************/
 while (!feof(nf) && line_count < count) { 
     gettimeofday(&en, NULL);
-    printf("Current timestamp in milliseconds: %ld\n", en.tv_sec - str.tv_sec);
+    printf("time: %ld\n", en.tv_sec - str.tv_sec);
     
     fd = open(filename, O_RDONLY);
     if (fd == -1) {
@@ -167,8 +168,8 @@ while (!feof(nf) && line_count < count) {
 	   
 	   
 	   
-	   sprintf(data,"speed:%.2f Lat:%f Lng:%f head:%.2f Latpt:%f lngpt:%f LatK:%f LngK:%f pt:%d\n",spd,lat,lng,head,lat_p,lon_p,out_lat,out_lng,line_count);
-	   printf("%s ",data);
+	   //sprintf(data,"speed:%.2f Lat:%f Lng:%f head:%.2f Latpt:%f lngpt:%f LatK:%f LngK:%f pt:%d\n",spd,lat,lng,head,lat_p,lon_p,out_lat,out_lng,line_count);
+	   //printf("%s ",data);
 	  
 	   double diff = distance(lat,lat_p,lng,lon_p);
 	   dis_ab = distance(lat_pa,lat_pb,lon_pa,lon_pb);
@@ -180,21 +181,16 @@ while (!feof(nf) && line_count < count) {
 	   dis_ac=distance(lat_pa,out_lat, lon_pa, out_lng);
 	   dis_bc=distance(lat_pb,out_lat, lon_pb, out_lng);
 	   ang_ac= initial_bearing(lat_pa,out_lat, lon_pa, out_lng);
-	   
-	   cte_ab = cross_track_error(dis_ac,ang_ab, ang_ac);
-	   canbus = cte2can(cte_ab);
-	   printf("CTE:%.2f CAN:%d",cte_ab,canbus); 
-	   //diffang_c = ang_ac-ang_ab;
 	   diffang_h=head-ang_ab;
-	   
-	   bytes_written = write(fds, message, sizeof(message) - 1);
+	   cte_ab = cross_track_error(dis_ac,ang_ab, ang_ac);
+	   canbus = pidHead(diffang_h,(-5*cte_ab),100.0,0.0,0.0);
+	   printf("CTE:%.2f CAN:%d  Ang:%.2f  %d\n",cte_ab,canbus,diffang_h,line_count); 
+	   sprintf(message,"%d\r\n",canbus);
+	   bytes_written = write(fds,message, sizeof(message));
      	   if (bytes_written == -1) {
         	perror("Error writing to serial port");
         	close(fds);
-    		} else {
-        	printf("Wrote %zd bytes to %s\n", bytes_written, portname);
-    	   }	   
-	   
+    		} 
 	    
 	   if(diff <5.0 && diff > 0.0){
 		fgets(line, 255, nf);
@@ -207,8 +203,6 @@ while (!feof(nf) && line_count < count) {
 
              }	
              
-              
-
 	  prev_lat=pred_lat;
 	  prev_lng=pred_lng;
 	  
@@ -233,9 +227,10 @@ return 0;
 }
 
 int cte2can(double kval){
-int cte_steer;
+int cte_steer, out;
 cte_steer = (int)((1.76*(kval*kval))+(15.2*kval)+52.0); 
-return cte_steer;
+out=(int)Constrain(cte_steer, 19, 91);
+return out;
 }
 
 
